@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>basemorph — interactive base converter</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --green: #3fb950;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --red: #f85149;
+    --orange: #d2991d;
+    --purple: #a371f7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',Menlo,monospace;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display:flex; flex-direction:column; align-items:center;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 800px; width: 100%; }
+  h1 { font-size:1.8rem; color: var(--green); margin-bottom:0.25rem; }
+  h1 span { color: var(--muted); font-weight:400; font-size:1rem; margin-left:0.5rem; }
+  .subtitle { color: var(--muted); font-size:0.85rem; margin-bottom:1.5rem; }
+  .card {
+    background: var(--card); border:1px solid var(--border);
+    border-radius:8px; padding:1.25rem; margin-bottom:1rem;
+  }
+  .card-title { color: var(--green); font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.75rem; }
+  .input-row { display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; }
+  input, select {
+    background: var(--bg); border:1px solid var(--border);
+    color: var(--text); font-family:inherit; font-size:1.1rem;
+    padding:0.65rem 0.85rem; border-radius:6px; outline:none;
+  }
+  input:focus, select:focus { border-color: var(--green); }
+  input { flex:1; min-width:200px; }
+  select { min-width:100px; cursor:pointer; }
+  .output-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+  @media(max-width:500px) { .output-grid { grid-template-columns:1fr; } }
+  .out-item {
+    background: var(--bg); border:1px solid var(--border);
+    border-radius:6px; padding:0.75rem;
+  }
+  .out-label { color: var(--muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.25rem; }
+  .out-val { font-size:1.2rem; word-break:break-all; color: var(--accent); }
+  .bit-row { display:flex; gap:0.35rem; flex-wrap:wrap; justify-content:center; }
+  .bit { display:flex; flex-direction:column; align-items:center; gap:0.3rem; }
+  .bit-label { color: var(--muted); font-size:0.6rem; }
+  .bit-switch {
+    width:44px; height:52px; background: var(--bg);
+    border:2px solid var(--border); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:1.1rem; font-weight:700;
+    color: var(--muted); transition:all 0.15s; user-select:none;
+  }
+  .bit-switch.on { border-color: var(--green); background:#1a3a1a; color: var(--green); }
+  .ascii-section { margin-top:0.75rem; }
+  .ascii-grid { display:grid; grid-template-columns: repeat(8,1fr); gap:0.3rem; }
+  .ascii-cell {
+    background: var(--bg); border:1px solid var(--border);
+    border-radius:4px; padding:0.3rem; text-align:center;
+    font-size:0.75rem; color: var(--accent);
+  }
+  .chars-row {
+    display:flex; gap:0.25rem; flex-wrap:wrap; font-size:1.4rem;
+    color: var(--purple); letter-spacing:2px; margin-top:0.5rem;
+  }
+  .end-card {
+    width:100%; background: var(--card); border:1px solid var(--border);
+    border-radius:8px; padding:1.5rem; text-align:center; margin-top:2rem;
+  }
+  .end-card .prompt { color: var(--green); font-size:0.85rem; margin-bottom:0.5rem; }
+  .end-card .prompt::before { content:'$ '; color: var(--muted); }
+  .end-card .links { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem; }
+  .end-card a { color: var(--accent); text-decoration:none; font-size:0.85rem; transition:color 0.15s; }
+  .end-card a:hover { color: var(--green); }
+  .end-card .divider { color: var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>basemorph <span>v0.1.0</span></h1>
+  <p class="subtitle">Interactive base converter — morph numbers between hex, decimal, octal, and binary</p>
+
+  <div class="card">
+    <div class="card-title">▸ Converter</div>
+    <div class="input-row">
+      <input type="text" id="numInput" placeholder="Enter a number..." autofocus>
+      <select id="srcBase">
+        <option value="16">HEX</option>
+        <option value="10" selected>DEC</option>
+        <option value="8">OCT</option>
+        <option value="2">BIN</option>
+      </select>
+    </div>
+    <div class="output-grid" style="margin-top:1rem;">
+      <div class="out-item"><div class="out-label">HEX</div><div class="out-val" id="outHex">—</div></div>
+      <div class="out-item"><div class="out-label">DEC</div><div class="out-val" id="outDec">—</div></div>
+      <div class="out-item"><div class="out-label">OCT</div><div class="out-val" id="outOct">—</div></div>
+      <div class="out-item"><div class="out-label">BIN</div><div class="out-val" id="outBin">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">▸ Bit Toggles</div>
+    <div class="bit-row" id="bits"></div>
+    <div style="text-align:center; margin-top:0.75rem; color:var(--muted); font-size:0.8rem;">
+      Decimal: <span id="bitDec" style="color:var(--accent);">0</span>
+      &nbsp;|&nbsp; Hex: <span id="bitHex" style="color:var(--accent);">0x00</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">▸ Byte Visualizer</div>
+    <div class="ascii-section">
+      <div class="ascii-grid" id="byteGrid"></div>
+      <div class="chars-row" id="charsRow"></div>
+    </div>
+  </div>
+
+  <div class="end-card">
+    <div class="prompt">basemorph — interactive base morphing</div>
+    <div class="links">
+      <a href="https://github.com/nousresearch/basemorph" target="_blank">github/nousresearch/basemorph</a>
+      <span class="divider">|</span>
+      <a href="https://hermtica.com/marketplace" target="_blank">hermtica.com/marketplace</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const outHex = $('#outHex'), outDec = $('#outDec'), outOct = $('#outOct'), outBin = $('#outBin');
+const bitDec = $('#bitDec'), bitHex = $('#bitHex');
+const bitsEl = $('#bits'), byteGrid = $('#byteGrid'), charsRow = $('#charsRow');
+
+// Build bit toggles
+for (let i=7; i>=0; i--) {
+  const d = document.createElement('div'); d.className='bit';
+  d.innerHTML = `<div class="bit-label">${2**i}</div><div class="bit-switch" data-bit="${i}">0</div>`;
+  bitsEl.appendChild(d);
+}
+
+function getBitVal() {
+  let v=0;
+  document.querySelectorAll('.bit-switch').forEach(b => {
+    if (b.classList.contains('on')) v += (+b.dataset.bit ? 1<<(+b.dataset.bit) : 1);
+  });
+  return v;
+}
+
+function updateBits(v) {
+  if (isNaN(v) || v<0) v=0;
+  if (v>255) v=255;
+  document.querySelectorAll('.bit-switch').forEach(b => {
+    const on = v & (1<<(+b.dataset.bit));
+    b.classList.toggle('on', !!on);
+    b.textContent = on ? '1' : '0';
+  });
+  bitDec.textContent = v;
+  bitHex.textContent = '0x'+v.toString(16).toUpperCase().padStart(2,'0');
+  // update byte visualizer
+  const chars=[];
+  byteGrid.innerHTML=''; charsRow.innerHTML='';
+  const b = v.toString(16).toUpperCase().padStart(2,'0');
+  for (let i=0; i<2; i++) {
+    const c = document.createElement('div'); c.className='ascii-cell'; c.textContent=b[i]; byteGrid.appendChild(c);
+  }
+  chars.push(String.fromCharCode(v >= 32 && v < 127 ? v : 0x2022));
+  byteGrid.querySelectorAll('.ascii-cell').forEach((c,i)=>{c.textContent=b[i];});
+  // extended: show the byte bits
+  while(byteGrid.children.length > 2) byteGrid.lastChild.remove();
+  for (let i=7; i>=0; i--) {
+    const c = document.createElement('div'); c.className='ascii-cell';
+    c.textContent = (v>>i)&1;
+    byteGrid.appendChild(c);
+  }
+  charsRow.innerHTML = chars.map(c=>`<span>${v>=32&&v<127?c:'•'}</span>`).join('');
+}
+
+bitsEl.addEventListener('click', e => {
+  const sw = e.target.closest('.bit-switch');
+  if (!sw) return;
+  sw.classList.toggle('on');
+  sw.textContent = sw.classList.contains('on')?'1':'0';
+  const v = getBitVal();
+  bitDec.textContent = v;
+  bitHex.textContent = '0x'+v.toString(16).toUpperCase().padStart(2,'0');
+  $('#numInput').value = v.toString(parseInt($('#srcBase').value));
+  updateOutputs();
+  updateByteViz(v);
+});
+
+function parseInput(s, base) {
+  s = s.trim();
+  if (!s) return NaN;
+  if (base===16 && s.toUpperCase().startsWith('0X')) s = s.slice(2);
+  if (base===2 && s.toUpperCase().startsWith('0B')) s = s.slice(2);
+  if (base===8 && s.startsWith('0O')) s = s.slice(2);
+  return parseInt(s, base);
+}
+
+function updateOutputs() {
+  const base = parseInt($('#srcBase').value);
+  const val = parseInput($('#numInput').value, base);
+  if (isNaN(val)) {
+    outHex.textContent = outDec.textContent = outOct.textContent = outBin.textContent = '—';
+    return;
+  }
+  outHex.textContent = '0x'+val.toString(16).toUpperCase();
+  outDec.textContent = val.toString(10);
+  outOct.textContent = '0o'+val.toString(8);
+  outBin.textContent = '0b'+val.toString(2);
+  updateBits(val & 0xFF);
+}
+
+function updateByteViz(v) {
+  if (isNaN(v)||v<0) v=0;
+  const b = v.toString(16).toUpperCase().padStart(2,'0');
+  byteGrid.innerHTML=''; charsRow.innerHTML='';
+  for (let i=7; i>=0; i--) {
+    const c = document.createElement('div'); c.className='ascii-cell';
+    c.textContent = (v>>i)&1;
+    byteGrid.appendChild(c);
+  }
+  const ch = v >= 32 && v < 127 ? String.fromCharCode(v) : '•';
+  charsRow.innerHTML = `<span style="font-size:2rem;">${ch}</span>`;
+  document.querySelectorAll('#bits .bit-switch').forEach(b => {
+    const on = v & (1<<(+b.dataset.bit));
+    b.classList.toggle('on', !!on);
+    b.textContent = on ? '1' : '0';
+  });
+  bitDec.textContent = v;
+  bitHex.textContent = '0x'+v.toString(16).toUpperCase().padStart(2,'0');
+}
+
+$('#numInput').addEventListener('input', updateOutputs);
+$('#srcBase').addEventListener('change', updateOutputs);
+
+// Init
+$('#numInput').value = '42';
+updateOutputs();
+</script>
+</body>
+</html>
