@@ -1,4 +1,5 @@
 # basemorph 🔢
+![CI](https://github.com/realMNohgee/basemorph/actions/workflows/ci.yml/badge.svg) ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg) ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 **Base converter and bitwise operations CLI.** Zero dependencies, pure Python stdlib.
 
